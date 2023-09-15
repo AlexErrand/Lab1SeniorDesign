@@ -11,6 +11,6 @@
     <orderEntry type="library" name="jfree.chart.fx" level="project" />
     <orderEntry type="library" name="twilio.sdk" level="project" />
     <orderEntry type="library" name="io.github.java.native.jssc" level="project" />
-    <orderEntry type="library" name="github.mcpat.gcf.bt.bluecove" level="project" />
+    <orderEntry type="library" name="io.ultreia.bluecove" level="project" />
   </component>
 </module>
