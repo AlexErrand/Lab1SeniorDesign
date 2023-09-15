@@ -110,6 +110,7 @@ public class Bluetooth {
 
         os.write("1".getBytes()); //just send '1' to the device
         os.close();
+        System.out.println(is.read());
         is.close();
         streamConnection.close();
     }
