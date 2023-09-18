@@ -17,9 +17,12 @@ import com.fazecast.jSerialComm.SerialPortEvent;
 import com.fazecast.jSerialComm.SerialPortDataListener;
 
 public class RealTimeGraphDemo extends JFrame {
+
     private XYSeries dataSeries;
     private SerialPort arduinoPort; // Serial port for Arduino communication
     private JButton toggleButton;
+    private JLabel temperatureDisplay;
+    private JLabel dataStatus;
     private boolean sensorOn = true;
     private Timer timer;
     private int xCounter = 0;
@@ -30,17 +33,31 @@ public class RealTimeGraphDemo extends JFrame {
 
     public RealTimeGraphDemo(final String title) {
         super(title);
+
         dataSeries = new XYSeries("Temperature Data");
         XYSeriesCollection dataset = new XYSeriesCollection(dataSeries);
+
+
         JFreeChart chart = createChart(dataset);
         ChartPanel chartPanel = new ChartPanel(chart);
 
-        chartPanel.setPreferredSize(new Dimension(800, 400));
+        chartPanel.setSize(400,400);
+       // chartPanel.setSize(new Dimension(800, 800));
         chartPanel.setMouseWheelEnabled(true);
         chartPanel.setZoomTriggerDistance(Integer.MAX_VALUE);
 
+        dataStatus = new JLabel();
+        temperatureDisplay = new JLabel();
+        dataStatus.setText("Not Receiving values");
+        temperatureDisplay.setText("0° Celsius");
+        dataStatus.setBounds(750,1000,200,200);
+        temperatureDisplay.setBounds(0,800,200,200);
+        dataStatus.setVisible(true);
+        temperatureDisplay.setVisible(true);
+
         setLayout(new BorderLayout());
         add(chartPanel, BorderLayout.CENTER);
+
 
         toggleButton = new JButton("Toggle Sensor");
         toggleButton.addActionListener(new ActionListener() {
@@ -52,6 +69,8 @@ public class RealTimeGraphDemo extends JFrame {
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(toggleButton);
         add(buttonPanel, BorderLayout.SOUTH);
+        add(dataStatus,BorderLayout.NORTH);
+        add(temperatureDisplay,BorderLayout.SOUTH);
 
         // Initialize the Arduino serial port (change the port name as needed)
         arduinoPort = SerialPort.getCommPort("COM3"); // Change this to your Arduino's port
@@ -68,7 +87,11 @@ public class RealTimeGraphDemo extends JFrame {
             @Override
             public void serialEvent(SerialPortEvent event) {
                 if (event.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE || !sensorOn)
-                    return;
+                    dataStatus.setText("Not Receiving Data");
+                else{
+                    dataStatus.setText("Receiving Data");
+                } ;
+
                 byte[] newData = new byte[arduinoPort.bytesAvailable()];
                 int numRead = arduinoPort.readBytes(newData, newData.length);
                 String receivedData = new String(newData);
@@ -84,6 +107,7 @@ public class RealTimeGraphDemo extends JFrame {
                             dataSeries.add(xCounter, temperature);
                             xValues[xCounter] = xCounter;
                             yValues[xCounter] = temperature;
+                            temperatureDisplay.setText(String.valueOf(temperature));
                             xCounter++;
                             // Update the previous temperature value
                             previousTemperature = temperature;
