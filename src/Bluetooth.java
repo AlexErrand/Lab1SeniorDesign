@@ -109,12 +109,17 @@ public class Bluetooth {
         InputStream is = streamConnection.openInputStream();
 
         os.write("1".getBytes()); //just send '1' to the device
+        os.flush();
         os.close();
-        int data = is.read();
-        if (data != -1){
+
+        while (true ) {
+
+            int data = is.read();
             System.out.println((char) data);
+
         }
-        is.close();
-        streamConnection.close();
+
+        //is.close();
+        //streamConnection.close();
     }
 }
