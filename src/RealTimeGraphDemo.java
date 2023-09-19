@@ -1,35 +1,37 @@
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.AxisLocation;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortEvent;
 import com.fazecast.jSerialComm.SerialPortDataListener;
+import javax.swing.*;
 
 public class RealTimeGraphDemo extends JFrame {
 
-    private XYSeries dataSeries;
-    private SerialPort arduinoPort; // Serial port for Arduino communication
-    private JButton toggleButton;
-    private JLabel temperatureDisplay;
-    private JLabel dataStatus;
+    private final XYSeries dataSeries;
+    private final SerialPort arduinoPort;
+    private final JButton toggleButton;
+    private final JLabel temperatureDisplay;
+    private final JLabel dataStatus;
     private boolean sensorOn = true;
-    private Timer timer;
     private int xCounter = 0;
-    private double[] xValues = new double[1000]; // Adjust the size as needed
-    private double[] yValues = new double[1000]; // Adjust the size as needed
+    private final int maxDataPoints = 300;
     private boolean isDataReceived = false;
-    private double previousTemperature = Double.NaN; // Initialize with NaN to handle the first data point
+    private double previousTemperature = Double.NaN;
+    private final long lastUpdateTimestamp = 0;
+
+    private boolean axisChangedFlag = false; // Flag to prevent reentry
 
     public RealTimeGraphDemo(final String title) {
         super(title);
@@ -37,27 +39,27 @@ public class RealTimeGraphDemo extends JFrame {
         dataSeries = new XYSeries("Temperature Data");
         XYSeriesCollection dataset = new XYSeriesCollection(dataSeries);
 
-
         JFreeChart chart = createChart(dataset);
-        ChartPanel chartPanel = new ChartPanel(chart);
-
-        chartPanel.setSize(400,400);
-       // chartPanel.setSize(new Dimension(800, 800));
+        ChartPanel chartPanel = new ChartPanel(chart, true, true, true, true, true);
         chartPanel.setMouseWheelEnabled(true);
-        chartPanel.setZoomTriggerDistance(Integer.MAX_VALUE);
+        chartPanel.setZoomTriggerDistance(20);
+
+        chartPanel.setSize(400, 400);
 
         dataStatus = new JLabel();
         temperatureDisplay = new JLabel();
         dataStatus.setText("Not Receiving values");
         temperatureDisplay.setText("0° Celsius");
-        dataStatus.setBounds(750,1000,200,200);
-        temperatureDisplay.setBounds(0,800,200,200);
-        dataStatus.setVisible(true);
-        temperatureDisplay.setVisible(true);
 
-        setLayout(new BorderLayout());
-        add(chartPanel, BorderLayout.CENTER);
+        setLayout(null);
 
+        chartPanel.setBounds(10, 10, 400, 400);
+        dataStatus.setBounds(750, 10, 200, 20);
+        temperatureDisplay.setBounds(10, 420, 200, 20);
+
+        add(chartPanel);
+        add(dataStatus);
+        add(temperatureDisplay);
 
         toggleButton = new JButton("Toggle Sensor");
         toggleButton.addActionListener(new ActionListener() {
@@ -66,18 +68,15 @@ public class RealTimeGraphDemo extends JFrame {
                 toggleSensor();
             }
         });
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(toggleButton);
-        add(buttonPanel, BorderLayout.SOUTH);
-        add(dataStatus,BorderLayout.NORTH);
-        add(temperatureDisplay,BorderLayout.SOUTH);
+        toggleButton.setBounds(750, 420, 200, 30);
+        add(toggleButton);
 
-        // Initialize the Arduino serial port (change the port name as needed)
-        arduinoPort = SerialPort.getCommPort("COM3"); // Change this to your Arduino's port
+        arduinoPort = SerialPort.getCommPort("COM3");
         arduinoPort.openPort();
-        arduinoPort.setBaudRate(115200); // Set the correct baud rate
+        arduinoPort.setBaudRate(115200);
 
-        // Add a data listener to receive data from Arduino
+        AtomicLong lastUpdateTimestamp = new AtomicLong();
+
         arduinoPort.addDataListener(new SerialPortDataListener() {
             @Override
             public int getListeningEvents() {
@@ -88,32 +87,47 @@ public class RealTimeGraphDemo extends JFrame {
             public void serialEvent(SerialPortEvent event) {
                 if (event.getEventType() != SerialPort.LISTENING_EVENT_DATA_AVAILABLE || !sensorOn)
                     dataStatus.setText("Not Receiving Data");
-                else{
+                else {
                     dataStatus.setText("Receiving Data");
-                } ;
+                }
 
                 byte[] newData = new byte[arduinoPort.bytesAvailable()];
                 int numRead = arduinoPort.readBytes(newData, newData.length);
                 String receivedData = new String(newData);
 
                 try {
-                    // Parse the received data as a double
                     double temperature = Double.parseDouble(receivedData.trim());
 
-                    // Check if the temperature is within a reasonable range and doesn't deviate too much from the previous reading
                     if (isValidTemperature(temperature) && isValidTemperatureDeviation(temperature)) {
-                        SwingUtilities.invokeLater(() -> {
-                            isDataReceived = true;
-                            dataSeries.add(xCounter, temperature);
-                            xValues[xCounter] = xCounter;
-                            yValues[xCounter] = temperature;
-                            temperatureDisplay.setText(String.valueOf(temperature));
-                            xCounter++;
-                            // Update the previous temperature value
-                            previousTemperature = temperature;
-                        });
+                        long currentTimestamp = System.currentTimeMillis();
+
+                        if (currentTimestamp - lastUpdateTimestamp.get() >= 1000) {
+                            SwingUtilities.invokeLater(() -> {
+                                isDataReceived = true;
+                                dataSeries.add(xCounter, temperature);
+                                if (xCounter >= maxDataPoints) {
+                                    dataSeries.remove(0);
+                                }
+                                temperatureDisplay.setText(String.valueOf(temperature));
+                                xCounter++;
+                                previousTemperature = temperature;
+                                lastUpdateTimestamp.set(currentTimestamp);
+
+                                // Ensure that the x-axis range stays within bounds
+                                if (xCounter > maxDataPoints) {
+                                    chart.getXYPlot().getDomainAxis().setRange(xCounter - maxDataPoints, xCounter);
+                                }
+                                // Ensure that the y-axis range stays within bounds
+                                if (!axisChangedFlag) {
+                                    axisChangedFlag = true;
+                                    double maxY = dataSeries.getMaxY();
+                                    double minY = dataSeries.getMinY();
+                                    chart.getXYPlot().getRangeAxis().setRange(minY - 10, maxY + 10);
+                                    axisChangedFlag = false;
+                                }
+                            });
+                        }
                     } else {
-                        // Data is outside the valid temperature range or has a large deviation, ignore it
                         System.err.println("Invalid temperature value received from Arduino: " + temperature);
                     }
                 } catch (NumberFormatException e) {
@@ -122,13 +136,11 @@ public class RealTimeGraphDemo extends JFrame {
             }
         });
 
-        // Create and start a timer to advance the x-axis
-        timer = new Timer(1000, new ActionListener() {
+        Timer timer = new Timer(1000, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (sensorOn) {
                     if (!isDataReceived) {
-                        // If no data received, add a gap by setting the y-value to NaN
                         dataSeries.add(xCounter, Double.NaN);
                     }
                     xCounter++;
@@ -149,6 +161,12 @@ public class RealTimeGraphDemo extends JFrame {
                 true, true, false);
 
         XYPlot plot = (XYPlot) chart.getPlot();
+        plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
+        plot.setRangeAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
+
+        plot.getDomainAxis().setRange(0, maxDataPoints);
+        plot.getRangeAxis().setRange(0, 100);
+
         XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
         renderer.setSeriesLinesVisible(0, true);
         plot.setRenderer(renderer);
@@ -160,29 +178,20 @@ public class RealTimeGraphDemo extends JFrame {
         sensorOn = !sensorOn;
         if (sensorOn) {
             toggleButton.setText("Turn Off Sensor");
-
         } else {
             toggleButton.setText("Turn On Sensor");
         }
     }
 
-    // Define a method to validate the temperature data
     private boolean isValidTemperature(double temperature) {
-        // You can adjust this range as needed for your specific temperature range
         return (temperature >= -50 && temperature <= 150);
     }
 
-    // Define a method to validate temperature deviation
     private boolean isValidTemperatureDeviation(double temperature) {
-        // Define a threshold for temperature deviation (e.g., 20 degrees)
         double temperatureDeviationThreshold = 20.0;
-
-        // If previousTemperature is NaN, accept the first data point
         if (Double.isNaN(previousTemperature)) {
             return true;
         }
-
-        // Check if the deviation is within the threshold
         double deviation = Math.abs(temperature - previousTemperature);
         return deviation <= temperatureDeviationThreshold;
     }
@@ -192,7 +201,7 @@ public class RealTimeGraphDemo extends JFrame {
             @Override
             public void run() {
                 RealTimeGraphDemo demo = new RealTimeGraphDemo("Real-Time Graph Demo");
-                demo.pack();
+                demo.setSize(1000, 500);
                 demo.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 demo.setVisible(true);
             }
