@@ -156,7 +156,12 @@ public class RealTimeGraphDemo extends JFrame {
                                     dataSeriesF.remove(0);
                                 }
 
-                                temperatureDisplay.setText(temperature + tempLabel);
+                                if (isTemperatureInFahrenheit) {
+                                    temperatureDisplay.setText((temperature*1.8 + 32) + tempLabel);
+                                } else {
+                                    temperatureDisplay.setText(temperature + tempLabel);
+                                }
+
 
                                 xCounter++;
                                 previousTemperature = temperature;
