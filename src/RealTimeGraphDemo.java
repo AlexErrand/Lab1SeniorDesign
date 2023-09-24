@@ -1,9 +1,6 @@
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
-
+import com.fazecast.jSerialComm.SerialPort;
+import com.fazecast.jSerialComm.SerialPortDataListener;
+import com.fazecast.jSerialComm.SerialPortEvent;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -13,11 +10,14 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import com.fazecast.jSerialComm.SerialPort;
-import com.fazecast.jSerialComm.SerialPortEvent;
-import com.fazecast.jSerialComm.SerialPortDataListener;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RealTimeGraphDemo extends JFrame {
 
@@ -51,14 +51,14 @@ public class RealTimeGraphDemo extends JFrame {
         XYSeriesCollection datasetF = new XYSeriesCollection(dataSeriesF);
 
         JFreeChart chart = createChart(dataset);
-        ChartPanel chartPanel = new ChartPanel(chart, true, true, true, true, true);
+        ChartPanel chartPanel = new ChartPanel(chart, true, true, true, false, true);
         chartPanel.setMouseWheelEnabled(true);
         chartPanel.setZoomTriggerDistance(20);
 
         chartPanel.setSize(400, 400);
 
         JFreeChart chartF = createChart(datasetF);
-        ChartPanel chartPanelF = new ChartPanel(chartF, true, true, true, true, true);
+        ChartPanel chartPanelF = new ChartPanel(chartF, true, true, true, false , true);
         chartPanelF.setMouseWheelEnabled(true);
         chartPanelF.setZoomTriggerDistance(20);
         chartPanelF.setBounds(10,10,400,400);
@@ -113,7 +113,11 @@ public class RealTimeGraphDemo extends JFrame {
         toggleButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                toggleSensor();
+                try {
+                    toggleSensor();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         });
         toggleButton.setBounds(750, 420, 200, 30);
@@ -122,9 +126,11 @@ public class RealTimeGraphDemo extends JFrame {
         arduinoPort = SerialPort.getCommPort("COM3");
 
         arduinoPort.openPort();
-        arduinoPort.setBaudRate(115200);
-
+        arduinoPort.setComPortParameters(115200,Byte.SIZE,SerialPort.ONE_STOP_BIT,SerialPort.NO_PARITY);
+        arduinoPort.setComPortTimeouts(SerialPort.TIMEOUT_WRITE_BLOCKING,0,0);
         AtomicLong lastUpdateTimestamp = new AtomicLong();
+
+        final byte TIMER_DURATION = 10;
 
         arduinoPort.addDataListener(new SerialPortDataListener() {
             @Override
@@ -139,6 +145,7 @@ public class RealTimeGraphDemo extends JFrame {
                 String receivedData = new String(newData);
 
                 try {
+
                     double temperature = Double.parseDouble(receivedData.trim());
                     System.out.println(temperature);
 
@@ -161,7 +168,6 @@ public class RealTimeGraphDemo extends JFrame {
                                 } else {
                                     temperatureDisplay.setText(temperature + tempLabel);
                                 }
-
 
                                 xCounter++;
                                 previousTemperature = temperature;
@@ -214,12 +220,17 @@ public class RealTimeGraphDemo extends JFrame {
         return chart;
     }
 
-    private void toggleSensor() {
+    private void toggleSensor() throws IOException {
         sensorOn = !sensorOn;
+        OutputStream outputStream = arduinoPort.getOutputStream();
         if (sensorOn) {
+            System.out.println("Turn off");
             toggleButton.setText("Turn Off Sensor");
+            outputStream.write( 0 );
         } else {
+            System.out.println("Turn on");
             toggleButton.setText("Turn On Sensor");
+            outputStream.write( 1 );
         }
     }
 
@@ -236,45 +247,12 @@ public class RealTimeGraphDemo extends JFrame {
         return deviation <= temperatureDeviationThreshold;
     }
 
-    private void temperatureConvert2Celsius() {
-        if (isTemperatureInFahrenheit) {
-            for (int i = 0; i < dataSeries.getItemCount(); i++) {
-                double celsius = (dataSeries.getY(i).doubleValue() - 32) * 5/9;
-                dataSeries.updateByIndex(i, celsius);
-            }
-            isTemperatureInFahrenheit = false;
-            // Update the y-axis label
-            updateYAxisLabel("Temperature (°C)");
-        }
-    }
-
-    private void temperatureConvert2Fht() {
-        if (!isTemperatureInFahrenheit) {
-            for (int i = 0; i < dataSeries.getItemCount(); i++) {
-                double fahrenheit = dataSeries.getY(i).doubleValue() * 9/5 + 32;
-                dataSeries.updateByIndex(i, fahrenheit);
-            }
-            isTemperatureInFahrenheit = true;
-            // Update the y-axis label
-            updateYAxisLabel("Temperature (°F)");
-        }
-    }
-
-    private void updateYAxisLabel(String label) {
-        JFreeChart chart = (JFreeChart) ((ChartPanel) getContentPane().getComponent(0)).getChart();
-        XYPlot plot = (XYPlot) chart.getPlot();
-        plot.getRangeAxis().setLabel(label);
-    }
-
     public static void main(final String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                RealTimeGraphDemo demo = new RealTimeGraphDemo("Real-Time Graph Demo");
-                demo.setSize(1000, 500);
-                demo.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                demo.setVisible(true);
-            }
+        SwingUtilities.invokeLater(() -> {
+            RealTimeGraphDemo demo = new RealTimeGraphDemo("Real-Time Graph Demo");
+            demo.setSize(1000, 500);
+            demo.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            demo.setVisible(true);
         });
     }
 }
