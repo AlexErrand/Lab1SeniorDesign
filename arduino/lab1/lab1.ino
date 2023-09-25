@@ -58,19 +58,12 @@ void loop() {
         printToLCD("     Error!     ", "Sensor not found");
       } else if (temperature != 253) {
         printToLCD("Temp:           ", String(temperature));
-      } else {
-        Serial.println("253: timeout error from sensor"); // we ignore this error code
-      }
-      // we double pulse every second to get a correct temperature value reading before sending to HC-06
-      temperature = dht11.readTemperature();
-      if (temperature == -1 || temperature == 254) {
-        printToLCD("     Error!     ", "Sensor not found");
-      } else if (temperature != 253) {
-        printToLCD("Temp:           ", String(temperature));
         BTSerial.print(String(temperature) + "\n"); // send to HC-06 device
       } else {
         Serial.println("253: timeout error from sensor"); // we ignore this error code
       }
+      // delay similar to the if statement to only read in every so often
+      delay(500);
     }
     BTSerial.print(String(temperature) + "\n");
     lcd.clear();
