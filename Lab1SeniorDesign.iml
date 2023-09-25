@@ -7,5 +7,10 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="twilio.sdk" level="project" />
+    <orderEntry type="library" name="jfree.chart.fx" level="project" />
+    <orderEntry type="library" name="io.ultreia.bluecove" level="project" />
+    <orderEntry type="library" name="github.jkschneider.netty.jssc" level="project" />
+    <orderEntry type="library" name="fazecast.jSerialComm" level="project" />
   </component>
 </module>
