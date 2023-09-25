@@ -20,69 +20,69 @@ int buttonState = 0;
 DHT11 dht11(2);
 SoftwareSerial BTSerial(0, 1); // object to read data from HC-06 Bluetooth device
 
+unsigned long previousMS = 0;
+unsigned long currentMS;
+
 void setup() {
   lcd.begin(16, 2);              // set up the LCD's number of columns and rows:
-  Serial.begin(115200);          // set baurd rate for temperature sensor
+  Serial.begin(9600);          // set baurd rate for temperature sensor
   BTSerial.begin(9600);          // set baud rate for HC-06 bluetooth device
   pinMode(buttonPin, INPUT);     // set input for button
   pinMode(backlight, OUTPUT);    // set an output for the LCD backlight
   digitalWrite(backlight, HIGH); // turn on backlight
-
-  getTemperature(); // grab temperature froms sensor
 }
 
 void loop() {
-  // set the cursor to column 0, line 1
-  // (note: line 1 is the second row, since counting begins with 0):
-  buttonState = digitalRead(buttonPin);
+  lcd.clear();
+  float temperature = getTemperature();
+  // we want to pulse the time in arduino rather than java code so grab time in ms
+  currentMS = millis();
+  // check every half second
+  if (currentMS - previousMS >= 500) {
+    previousMS = currentMS;
+    temperature = getTemperature();
+    // check is button is being pressed
+    while(digitalRead(buttonPin) == LOW) {
+      digitalWrite(backlight, HIGH); // turn on backlight
+      lcd.display();
 
-  if (Serial.available() > 0) {
-    
-    char command = Serial.read();
-    Serial.println(Serial.read());
-    if (command == 'ON') {
-      digitalWrite(buttonState, LOW); // Turn on the sensor
-    } else if (command == 'OFF') {
-      digitalWrite(buttonState, HIGH); // Turn off the sensor
+      if (temperature == -1 || temperature == 254) {
+        printToLCD("     Error!     ", "Sensor not found");
+      } else if (temperature != 253) {
+        printToLCD("Temp:           ", String(temperature));
+      } else {
+        Serial.println("253: timeout error from sensor"); // we ignore this error code
+      }
+      // we double pulse every second to get a correct temperature value reading before sending to HC-06
+      temperature = getTemperature();
+      Serial.println(String(temperature));
+      if (temperature == -1 || temperature == 254) {
+        printToLCD("     Error!     ", "Sensor not found");
+      } else if (temperature != 253) {
+        printToLCD("Temp:           ", String(temperature));
+        BTSerial.print(String(temperature) + "\n"); // send to HC-06 device
+      } else {
+        Serial.println("253: timeout error from sensor"); // we ignore this error code
+      }
     }
 
-    if (command == 0) {
-      digitalWrite(buttonState, LOW); // Turn on the sensor
-    } else if (command == 1) {
-      digitalWrite(buttonState, HIGH); // Turn off the sensor
-    }
-  }
-
-  float temperature = dht11.readTemperature();
-
-  String temp2Java = String(temperature);
-
-  if(temperature!= -1 && temperature != 253.0){
-    temp2Java = String(temperature);
-    Serial.println(temp2Java); 
-  }
-
-  if (buttonState == LOW) {
-    digitalWrite(backlight, HIGH); // turn on backlight
-
-    lcd.setCursor(0, 1);
-    lcd.display();
-    // print the number of seconds since reset:
-    if(temperature!= -1 && temperature != 253.0){
-      lcd.print("temp: ");
-      lcd.print(temperature);
-      temp2Java = String(temperature);
-      Serial.println(temp2Java); 
-    }
-  }
-  else {
+    BTSerial.print(String(temperature) + "\n");
+    BTSerial.write('A');
     lcd.clear();
-    digitalWrite(backlight, LOW); // turn on backlight
+    digitalWrite(backlight, LOW); // turn off backlight
   }
-
 }
 
-// helper function
-void getTemperature() {
+// helper functions
+void printToLCD(String str1, String str2) {
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(str1);
 
+  lcd.setCursor(0,1);
+  lcd.print(str2);
+}
+
+float getTemperature() {
+  return dht11.readTemperature();
 }
