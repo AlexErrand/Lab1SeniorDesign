@@ -27,10 +27,7 @@ public class RealTimeGraphDemo extends JFrame {
     private final static String tempLabelC = " °C";
     private final static String tempLabelF = " °F";
     private final TemperatureFileReader tempReader;
-
-
     private boolean axisChangedFlag = false; // Flag to prevent reentry
-
     private boolean isTemperatureInFahrenheit = false; // Flag to track temperature scale
 
     public RealTimeGraphDemo(final String title) throws IOException {
@@ -134,11 +131,15 @@ public class RealTimeGraphDemo extends JFrame {
 
         SwingUtilities.invokeLater(() -> {
             // add the temperature counter for both data series
-            if (temperature == -1.0) {
+            if (temperature == ErrorCodes.UNPLUGGED.code) {
                 dataStatus.setText("Sensor is unplugged");
-                dataSeries.add(xCounter, null);
-                dataSeriesF.add(xCounter, null);
-                updateTempDisplay(-1, -1);
+                updateErrorCodeDisplay();
+            } else if (temperature == ErrorCodes.NOT_CONNECTED.code) {
+                dataStatus.setText("Sensor is not connected");
+                updateErrorCodeDisplay();
+            } else if (temperature == ErrorCodes.CHECK_SUM_ERROR.code) {
+                dataStatus.setText("Sensor has data reading issue");
+                updateErrorCodeDisplay();
             } else {
                 dataStatus.setText("Sensor connected");
                 dataSeries.add(xCounter, temperature);
@@ -180,9 +181,10 @@ public class RealTimeGraphDemo extends JFrame {
         }
     }
 
-
-    private boolean isValidTemperature(double temperature) {
-        return (temperature >= -50 && temperature <= 150);
+    private void updateErrorCodeDisplay() {
+        dataSeries.add(xCounter, null);
+        dataSeriesF.add(xCounter, null);
+        updateTempDisplay(-1, -1);
     }
 
     // helper method

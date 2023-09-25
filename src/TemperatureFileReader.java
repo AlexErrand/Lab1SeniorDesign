@@ -20,9 +20,10 @@ public class TemperatureFileReader {
         while ((s = br.readLine()) != null) {
             lastReadValue = s;
         }
-        System.out.println(lastReadValue);
         // if the 253 value is received then the sensor is unplugged
-        if (Objects.equals(lastReadValue, "253.00")) return -1.0;
+        if (Objects.equals(lastReadValue, "")) return ErrorCodes.NOT_CONNECTED.code;
+        if (Objects.equals(lastReadValue, "253.00")) return ErrorCodes.UNPLUGGED.code;
+        if (Objects.equals(lastReadValue, "254.00")) return ErrorCodes.CHECK_SUM_ERROR.code;
         // parse value to make sure its valid
         try {
             return Double.parseDouble(lastReadValue);
