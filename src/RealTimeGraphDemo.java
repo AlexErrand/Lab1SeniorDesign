@@ -48,10 +48,10 @@ public class RealTimeGraphDemo extends JFrame {
         chartPanel.setBounds(10, 10, 400, 400);
         // create chart F
         chartF = createChart(datasetF, "Temperature (°F)");
-        ChartPanel chartPanelF = new ChartPanel(chartF, true, true, true, false , true);
+        ChartPanel chartPanelF = new ChartPanel(chartF, true, true, true, false, true);
         chartPanelF.setMouseWheelEnabled(true);
         chartPanelF.setZoomTriggerDistance(20);
-        chartPanelF.setBounds(10,10,400,400);
+        chartPanelF.setBounds(10, 10, 400, 400);
         chartPanelF.setVisible(false);
         // null layout to set strict bounds
         setLayout(null);
@@ -187,7 +187,6 @@ public class RealTimeGraphDemo extends JFrame {
         updateTempDisplay(-1, -1);
     }
 
-    // helper method
     private double convertToFahrenheit(double tempInC) {
         return ((tempInC * 1.8) + 32);
     }
