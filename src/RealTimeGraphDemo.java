@@ -11,6 +11,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
+import java.text.DecimalFormat;
 
 public class RealTimeGraphDemo extends JFrame {
 
@@ -29,7 +30,7 @@ public class RealTimeGraphDemo extends JFrame {
     private final TemperatureFileReader tempReader;
     private boolean axisChangedFlag = false; // Flag to prevent reentry
     private boolean isTemperatureInFahrenheit = false; // Flag to track temperature scale
-    private final static double maxTempF = 90.0;
+    private final static double maxTempF = 122.0;
     private final static double minTempF = 50.0;
     private boolean textSent = false;
 
@@ -167,20 +168,21 @@ public class RealTimeGraphDemo extends JFrame {
             // Ensure that the y-axis range stays within bounds
             if (!axisChangedFlag) {
                 axisChangedFlag = true;
-                double maxY = dataSeries.getMaxY();
-                double minY = dataSeries.getMinY();
-                chart.getXYPlot().getRangeAxis().setRange(minY - 10, maxY + 10);
-                maxY = dataSeriesF.getMaxY();
-                minY = dataSeriesF.getMinY();
-                chartF.getXYPlot().getRangeAxis().setRange(minY - 10, maxY + 10);
+                chart.getXYPlot().getRangeAxis().setRange(10, 50);
+                chart.getXYPlot().getDomainAxis().setRange(0, 300);
+                chart.getXYPlot().getDomainAxis().setInverted(true);
+                chartF.getXYPlot().getRangeAxis().setRange(50, 122);
+                chartF.getXYPlot().getDomainAxis().setRange(0, 300);
+                chartF.getXYPlot().getDomainAxis().setInverted(true);
                 axisChangedFlag = false;
             }
         });
     }
 
     private void updateTempDisplay(double tempC, double tempF) {
+        DecimalFormat df = new DecimalFormat("#.00");
         if (isTemperatureInFahrenheit) {
-            temperatureDisplay.setText(tempF + tempLabelF);
+            temperatureDisplay.setText(df.format(tempF) + tempLabelF);
         } else {
             temperatureDisplay.setText(tempC + tempLabelC);
         }
