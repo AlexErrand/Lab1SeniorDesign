@@ -53,7 +53,7 @@ void loop() {
     while(digitalRead(buttonPin) == LOW) {
       digitalWrite(backlight, HIGH); // turn on backlight
       lcd.display();
-      
+      temperature = dht11.readTemperature();
       if (temperature == -1 || temperature == 254) {
         printToLCD("     Error!     ", "Sensor not found");
       } else if (temperature != 253) {

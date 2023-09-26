@@ -4,7 +4,7 @@ import com.twilio.type.PhoneNumber;
 
 public class SendText {
     public static final String ACCOUNT_SID = "ACf5200104419f75389ab80c169cd5b6c0";
-    public static final String AUTH_TOKEN = "5aa6bbba131cc143ee39a9101c23c2cd";
+    public static final String AUTH_TOKEN = "a87d293762185f06e171de4b6e40d5b9";
 
     // function that will be used in the main program
     public static void sendATextToPhone(String body) {

@@ -138,7 +138,7 @@ public class RealTimeGraphDemo extends JFrame {
                 dataStatus.setText("Sensor is unplugged");
                 updateErrorCodeDisplay();
             } else if (temperature == ErrorCodes.NOT_CONNECTED.code) {
-                dataStatus.setText("Sensor is not connected");
+                dataStatus.setText("Sensor is not connected to bluetooth");
                 updateErrorCodeDisplay();
             } else if (temperature == ErrorCodes.CHECK_SUM_ERROR.code) {
                 dataStatus.setText("Sensor has data reading issue");
@@ -150,8 +150,6 @@ public class RealTimeGraphDemo extends JFrame {
                 updateTempDisplay(temperature, temperatureInF);
                 checkLimitToSendText(temperatureInF);
             }
-
-            // check temperature limits
 
             // remove "first" value of series if we exceed 300 seconds
             if (xCounter >= maxDataPoints) {
@@ -188,10 +186,14 @@ public class RealTimeGraphDemo extends JFrame {
         }
     }
 
+    private void updateTempDisplay() {
+        temperatureDisplay.setText("No data available");
+    }
+
     private void updateErrorCodeDisplay() {
         dataSeries.add(xCounter, null);
         dataSeriesF.add(xCounter, null);
-        updateTempDisplay(-1, -1);
+        updateTempDisplay();
         checkLimitToSendText(-1);
     }
 
