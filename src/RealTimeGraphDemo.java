@@ -29,6 +29,9 @@ public class RealTimeGraphDemo extends JFrame {
     private final TemperatureFileReader tempReader;
     private boolean axisChangedFlag = false; // Flag to prevent reentry
     private boolean isTemperatureInFahrenheit = false; // Flag to track temperature scale
+    private final static double maxTempF = 90.0;
+    private final static double minTempF = 50.0;
+    private boolean textSent = false;
 
     public RealTimeGraphDemo(final String title) throws IOException {
         super(title);
@@ -145,7 +148,11 @@ public class RealTimeGraphDemo extends JFrame {
                 dataSeries.add(xCounter, temperature);
                 dataSeriesF.add(xCounter, temperatureInF);
                 updateTempDisplay(temperature, temperatureInF);
+                checkLimitToSendText(temperatureInF);
             }
+
+            // check temperature limits
+
             // remove "first" value of series if we exceed 300 seconds
             if (xCounter >= maxDataPoints) {
                 dataSeries.remove(0);
@@ -185,10 +192,26 @@ public class RealTimeGraphDemo extends JFrame {
         dataSeries.add(xCounter, null);
         dataSeriesF.add(xCounter, null);
         updateTempDisplay(-1, -1);
+        checkLimitToSendText(-1);
     }
 
     private double convertToFahrenheit(double tempInC) {
         return ((tempInC * 1.8) + 32);
+    }
+
+    private void checkLimitToSendText(double tempF) {
+        if ((tempF > maxTempF) && !textSent) {
+            SendText.sendATextToPhone("TEMP HAS EXCEEDED MAX LIMIT");
+            textSent = true;
+        }
+        if ((tempF < minTempF) && !textSent && tempF != -1) {
+            SendText.sendATextToPhone("TEMP HAS DROPPED BELOW MIN LIMIT");
+            textSent = true;
+        }
+        // once we get back into the "safe" range we reset the text variable - avoids text spamming
+        if (textSent && ((tempF < maxTempF && tempF > minTempF))) {
+            textSent = false;
+        }
     }
 
     public static void main(final String[] args) {

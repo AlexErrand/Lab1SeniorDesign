@@ -7,7 +7,7 @@ public class SendText {
     public static final String AUTH_TOKEN = "5aa6bbba131cc143ee39a9101c23c2cd";
 
     // function that will be used in the main program
-    public void sendATextToPhone(String body) {
+    public static void sendATextToPhone(String body) {
         Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
         Message message = Message.creator(new PhoneNumber("+13195310040"), new PhoneNumber("+18775666567"), body).create();
         System.out.println(message.getSid());
