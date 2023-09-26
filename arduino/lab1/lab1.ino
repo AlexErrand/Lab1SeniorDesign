@@ -61,6 +61,7 @@ void loop() {
         BTSerial.print(String(temperature) + "\n"); // send to HC-06 device
       } else {
         Serial.println("253: timeout error from sensor"); // we ignore this error code
+        printToLCD("     Error!     ", "Sensor not found");
       }
       // delay similar to the if statement to only read in every so often
       delay(500);
