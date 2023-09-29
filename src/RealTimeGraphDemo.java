@@ -28,7 +28,7 @@ public class RealTimeGraphDemo extends JFrame {
     private int xCounter = 0;
     private final static String tempLabelC = " °C";
     private final static String tempLabelF = " °F";
-    private final TemperatureFileReader tempReader;
+    private TemperatureFileReader tempReader;
     private boolean axisChangedFlag = false; // Flag to prevent reentry
     private boolean isTemperatureInFahrenheit = false; // Flag to track temperature scale
     private final static double maxTempF = 122.0;
@@ -94,7 +94,7 @@ public class RealTimeGraphDemo extends JFrame {
         toggleButton = new JButton("Toggle Sensor");
         toggleButton.setBounds(750, 420, 200, 30);
         toggleButton.addActionListener(e -> {
-
+            // This was unable to send data back to the arduino so code was removed
         });
         // add items to the layout
         add(chartPanelF);
@@ -143,6 +143,7 @@ public class RealTimeGraphDemo extends JFrame {
                 updateErrorCodeDisplay();
             } else if (temperature == ErrorCodes.NOT_CONNECTED.code) {
                 dataStatus.setText("Sensor is not connected to bluetooth");
+                resetConnection();
                 updateErrorCodeDisplay();
             } else if (temperature == ErrorCodes.CHECK_SUM_ERROR.code) {
                 dataStatus.setText("Sensor has data reading issue");
@@ -189,6 +190,14 @@ public class RealTimeGraphDemo extends JFrame {
             temperatureDisplay.setText(df.format(tempF) + tempLabelF);
         } else {
             temperatureDisplay.setText(tempC + tempLabelC);
+        }
+    }
+
+    private void resetConnection() {
+        try {
+            tempReader = new TemperatureFileReader();
+        } catch (IOException ignored) {
+            // left empty for checkoff
         }
     }
 
