@@ -12,6 +12,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 
 public class RealTimeGraphDemo extends JFrame {
 
@@ -33,6 +34,8 @@ public class RealTimeGraphDemo extends JFrame {
     private final static double maxTempF = 122.0;
     private final static double minTempF = 50.0;
     private boolean textSent = false;
+    private ArrayList<Double> dataArray = new ArrayList<>();
+    private ArrayList<Double> dataArrayF = new ArrayList<>();
 
     public RealTimeGraphDemo(final String title) throws IOException {
         super(title);
@@ -146,8 +149,9 @@ public class RealTimeGraphDemo extends JFrame {
                 updateErrorCodeDisplay();
             } else {
                 dataStatus.setText("Sensor connected");
-                dataSeries.add(xCounter, temperature);
-                dataSeriesF.add(xCounter, temperatureInF);
+                dataArray.add(temperature);
+                dataArrayF.add(temperatureInF);
+                updateDataSeries();
                 updateTempDisplay(temperature, temperatureInF);
                 checkLimitToSendText(temperatureInF);
             }
@@ -193,10 +197,22 @@ public class RealTimeGraphDemo extends JFrame {
     }
 
     private void updateErrorCodeDisplay() {
-        dataSeries.add(xCounter, null);
-        dataSeriesF.add(xCounter, null);
+        dataArray.add(null);
+        dataArrayF.add(null);
+        updateDataSeries();
         updateTempDisplay();
         checkLimitToSendText(-1);
+    }
+
+    private void updateDataSeries() {
+        dataSeries.clear();
+        dataSeriesF.clear();
+        int j = 0;
+        for(int i=dataArray.size()-1; i>=0; i--) {
+            dataSeries.add(i, dataArray.get(j));
+            dataSeriesF.add(i, dataArrayF.get(j));
+            j++;
+        }
     }
 
     private double convertToFahrenheit(double tempInC) {
